@@ -5,3 +5,5 @@
 !README.md
 !/experiments
 !/experiments/adversary_experiment.py
+!/config
+!config/adversary_config.yml
