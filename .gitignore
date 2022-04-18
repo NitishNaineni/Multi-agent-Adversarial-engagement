@@ -1,8 +1,5 @@
-*
-!.gitignore
-!main.py
-!README.md
-!/experiments
-!/experiments/adversary_experiment.py
-!/config
-!config/adversary_config.yml
+**__pycache__/
+cache/
+*.py[cod]
+*$py.class
+*.so
