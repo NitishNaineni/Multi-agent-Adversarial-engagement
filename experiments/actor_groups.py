@@ -13,16 +13,13 @@ def get_initial_positions(cartesian_pos, r, n):
     return positions
 
 
-def create_actor_groups(num_groups=6,num_agents=10):
-    n_actor_groups = num_groups
+def create_actor_groups(num_uav_groups=6,num_ugv_groups=6,num_agents=10):
+    n_actor_groups = num_uav_groups + num_ugv_groups
     actor_groups = {}
     for i in range(n_actor_groups):
         temp = []
         for j in range(num_agents):
-            if i <= 2:
-                temp.append(UaV())
-            else:
-                temp.append(UgV())
+            temp.append(UaV() if i < num_uav_groups else UgV())
         actor_groups[i] = temp
 
     return actor_groups

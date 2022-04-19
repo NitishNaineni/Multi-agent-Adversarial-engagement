@@ -72,7 +72,7 @@ class UgV(BaseActor):
         return None
 
     def get_observation(self):
-        return 0
+        return np.concatenate((self.current_pos[:2],self.desired_pos[:2]))
 
     def apply_action(self, position):
         """This function moves the vehicles to given position

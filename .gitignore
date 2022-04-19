@@ -3,3 +3,4 @@ cache/
 *.py[cod]
 *$py.class
 *.so
+testing.ipynb

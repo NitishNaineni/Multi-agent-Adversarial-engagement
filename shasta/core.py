@@ -206,9 +206,10 @@ class ShastaCore():
 
         # Collect the raw observation from all the actors in each actor group
         for group in self.actor_groups:
-            obs_from_each_actor = [
-                actor.get_observation() for actor in self.actor_groups[group]
-            ]
+            obs_from_each_actor = []
+            for actor in self.actor_groups[group]:
+                obs_from_each_actor.append(actor.get_observation())
+            
 
             observations[group] = obs_from_each_actor
 

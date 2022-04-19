@@ -1,10 +1,21 @@
+from platform import node
+from shasta import actor
 from shasta.base_experiment import BaseExperiment
+
+from .custom_primitive import FormationWithPlanning
 
 
 class AdversaryExperiment(BaseExperiment):
     def __init__(self, config, core):
         super().__init__(config, core)
-        pass
+
+
+        # Primitive setup
+        self.actions = {}
+        env_map = core.get_map()
+        num_actor_groups = len(core.get_actor_groups())
+        for i in range(num_actor_groups):
+            self.actions[i] = FormationWithPlanning(env_map)
 
     def reset(self):
         """Called at the beginning and each time the simulation is reset"""
@@ -27,7 +38,13 @@ class AdversaryExperiment(BaseExperiment):
 
         :param action: value outputted by the policy
         """
-        pass
+        # Get the actor group
+        actor_groups = core.get_actor_groups()
+        self.dones = []
+        num_actor_groups = len(actor_groups)
+        for i in range(num_actor_groups):
+            done = self.actions[i].execute(actor_groups[i], target_pos=0)
+            self.dones.append(done)
 
     def get_observation(self, observation, core):
         """Function to do all the post processing of observations (sensor data).
@@ -38,13 +55,13 @@ class AdversaryExperiment(BaseExperiment):
         as well as a variable with additional information about such observation.
         The information variable can be empty
         """
-        print(observation)
-        return None, {}
+        node_graph = core.map.get_node_graph()
+        return (observation,node_graph), {}
 
     def get_done_status(self, observation, core):
         """Returns whether or not the experiment has to end"""
-        return NotImplementedError
+        return self.dones
 
     def compute_reward(self, observation, core):
         """Computes the reward"""
-        pass
+        return 0
