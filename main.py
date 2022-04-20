@@ -9,6 +9,7 @@ from experiments.adversary_experiment import AdversaryExperiment
 from experiments.actor_groups import create_actor_groups
 
 import warnings
+import random
 
 warnings.filterwarnings("ignore")
 
@@ -25,9 +26,10 @@ actor_groups = create_actor_groups(NUM_UAV_GROUPS,NUM_UGV_GROUPS,NUM_AGENTS_PER_
 config['experiment']['type'] = AdversaryExperiment
 env = ShastaEnv(config, actor_groups=actor_groups)
 
+action= random.sample(range(405),NUM_UGV_GROUPS + NUM_UAV_GROUPS)
 for i in range(50000):
-    observation, reward, done, info = env.step(0)
+    observation, reward, done, info = env.step(action)
+    print(observation[0])
     if all(done):
         break
 
-print(observation)

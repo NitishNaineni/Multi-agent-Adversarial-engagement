@@ -43,7 +43,7 @@ class AdversaryExperiment(BaseExperiment):
         self.dones = []
         num_actor_groups = len(actor_groups)
         for i in range(num_actor_groups):
-            done = self.actions[i].execute(actor_groups[i], target_pos=0)
+            done = self.actions[i].execute(actor_groups[i], target_pos=actions[i])
             self.dones.append(done)
 
     def get_observation(self, observation, core):
@@ -64,4 +64,10 @@ class AdversaryExperiment(BaseExperiment):
 
     def compute_reward(self, observation, core):
         """Computes the reward"""
-        return 0
+        rewards = {}
+        for key,group_observations in observation[0].items():
+            group_rewards = []
+            for agent_observation in group_observations:
+                group_rewards.append(-((agent_observation[:2] - agent_observation[2:4])**2).sum())
+            rewards[key] = group_rewards
+        return rewards
