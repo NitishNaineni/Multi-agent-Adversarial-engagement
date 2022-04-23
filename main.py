@@ -18,7 +18,7 @@ NUM_UAV_GROUPS = 0
 NUM_UGV_GROUPS = 1
 NUM_AGENTS_PER_GROUP = 1
 
-config_path = 'config/simulation_config.yml'
+config_path = 'config/adversary_config.yml'
 config = yaml.load(open(str(config_path)), Loader=yaml.SafeLoader)
 
 
