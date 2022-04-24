@@ -12,7 +12,7 @@ def plot_nodes(config):
         a yaml file providing the configuration
     """
     read_path = '/'.join([
-        config['urdf_data_path'], config['simulation']['map_to_use'], 'map.osm'
+        config['urdf_data_path'], config['experiment']['map_to_use'], 'map.osm'
     ])
     G = ox.graph_from_xml(read_path, simplify=True, bidirectional='walk')
     G = nx.convert_node_labels_to_integers(G)
