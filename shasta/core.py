@@ -4,6 +4,7 @@ import signal
 
 import pybullet as p
 from pybullet_utils import bullet_client as bc
+import networkx as nx
 
 from .world import World
 from .map import Map

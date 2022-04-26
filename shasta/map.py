@@ -1,3 +1,4 @@
+from turtle import pos
 import warnings
 
 from pathlib import Path
@@ -14,13 +15,25 @@ class Map():
     def __init__(self) -> None:
         return None
 
-    def _affine_transformation_and_graph(self):
+    def _affine_transformation_and_graph(self,experiment_config):
         """Performs initial conversion of the lat lon to cartesian
         """
         # Graph
         read_path = self.asset_path + '/map.osm'
         G = ox.graph_from_xml(read_path, simplify=True, bidirectional='walk')
-        self.node_graph = nx.convert_node_labels_to_integers(G)
+        
+        node_graph = nx.convert_node_labels_to_integers(G)
+        for node in node_graph.nodes(data=True):
+            remove_node_atrs = set(node[1].keys()) - set(experiment_config['node_attributes'])
+            for node_atr in remove_node_atrs:
+                del node[1][node_atr]
+
+        for edge in node_graph.edges(data=True):
+            remove_edge_atrs = set(edge[2].keys()) - set(experiment_config['edge_attributes'])
+            for edge_atr in remove_edge_atrs:
+                del edge[2][edge_atr]
+        
+        self.node_graph = node_graph
 
         # Transformation matrix
         read_path = self.asset_path + '/coordinates.csv'
@@ -73,6 +86,15 @@ class Map():
 
         self.buildings = buildings
         return None
+    
+    def _cumulative_positions_vector(self):
+        num_nodes = self.node_graph.number_of_nodes()
+        positions_vector = np.zeros((num_nodes,2))
+        for node in self.node_graph.nodes(data=True):
+            positions_vector[node[0]] = [node[1]['y'],node[1]['x']]
+        self.positions_vector = positions_vector
+
+        return None
 
     def setup(self, experiment_config):
         """Perform the initial experiment setup e.g., loading the map
@@ -107,8 +129,9 @@ class Map():
                 )
 
         # Initialize the assests
-        self._affine_transformation_and_graph()
+        self._affine_transformation_and_graph(experiment_config)
         self._setup_buildings()
+        self._cumulative_positions_vector()
         return None
 
     def get_affine_transformation_and_graph(self):
@@ -130,6 +153,9 @@ class Map():
             A node graph of the world map
         """
         return self.node_graph
+
+    def get_positions_vector(self):
+        return self.positions_vector
 
     def get_node_info(self, node_index):
         """Get the information about a node.

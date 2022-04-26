@@ -1,6 +1,8 @@
 from platform import node
+from turtle import pos
 from shasta import actor
 from shasta.base_experiment import BaseExperiment
+import osmnx as ox
 
 from .custom_primitive import FormationWithPlanning
 
@@ -55,7 +57,16 @@ class AdversaryExperiment(BaseExperiment):
         as well as a variable with additional information about such observation.
         The information variable can be empty
         """
-        node_graph = core.map.get_node_graph()
+        map = core.get_map()
+        node_graph = map.get_node_graph()
+        actor_groups = core.get_actor_groups()
+        num_actor_groups = len(actor_groups)
+        agent_node_locs = []
+        positions_vector = map.get_positions_vector()
+        for i in range(num_actor_groups):
+            actor_loc = map.convert_to_lat_lon(actor_groups[i][0].current_pos)
+            node_loc = self.get_nearest_node(positions_vector,actor_loc[:2])
+            print(map.convert_from_lat_lon(list(node_graph.nodes[node_loc].values())),actor_groups[i][0].current_pos)
         return (observation,node_graph), {}
 
     def get_done_status(self, observation, core):
@@ -68,6 +79,11 @@ class AdversaryExperiment(BaseExperiment):
         for key,group_observations in observation[0].items():
             group_rewards = []
             for agent_observation in group_observations:
-                group_rewards.append(-((agent_observation[:2] - agent_observation[2:4])**2).sum())
+                group_rewards.append(1)
             rewards[key] = group_rewards
         return rewards
+
+    def get_nearest_node(self,positions_vector,actor_loc):
+        return ((positions_vector - actor_loc)**2).sum(axis=1).argmin()
+
+

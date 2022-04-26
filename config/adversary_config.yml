@@ -14,6 +14,8 @@ experiment:
   record_video: False
   log_states: False
   detailed_model: True
+  node_attributes:  ['x','y']
+  edge_attributes:  ['length']
 
 ##---------------------------------------------------------------------##
 # Paths

@@ -8,7 +8,7 @@ from __future__ import print_function
 import gym
 
 from .core import ShastaCore
-
+import networkx as nx
 
 class ShastaEnv(gym.Env):
     """
