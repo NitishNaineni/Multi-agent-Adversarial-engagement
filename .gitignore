@@ -4,3 +4,4 @@ cache/
 *$py.class
 *.so
 testing.ipynb
+.vscode/
