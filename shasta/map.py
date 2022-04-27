@@ -23,16 +23,6 @@ class Map():
         G = ox.graph_from_xml(read_path, simplify=True, bidirectional='walk')
         
         node_graph = nx.convert_node_labels_to_integers(G)
-        for node in node_graph.nodes(data=True):
-            remove_node_atrs = set(node[1].keys()) - set(experiment_config['node_attributes'])
-            for node_atr in remove_node_atrs:
-                del node[1][node_atr]
-
-        for edge in node_graph.edges(data=True):
-            remove_edge_atrs = set(edge[2].keys()) - set(experiment_config['edge_attributes'])
-            for edge_atr in remove_edge_atrs:
-                del edge[2][edge_atr]
-        
         self.node_graph = node_graph
 
         # Transformation matrix
@@ -46,6 +36,18 @@ class Map():
         Y = np.hstack((target, np.ones((target.shape[0], 1))))
         self.A, res, rank, s = np.linalg.lstsq(X, Y, rcond=None)
 
+        return None
+
+    def _filter_attributes(self,experiment_config):
+        for node in self.node_graph.nodes(data=True):
+            remove_node_atrs = set(node[1].keys()) - set(experiment_config['node_attributes'])
+            for node_atr in remove_node_atrs:
+                del node[1][node_atr]
+
+        for edge in self.node_graph.edges(data=True):
+            remove_edge_atrs = set(edge[2].keys()) - set(experiment_config['edge_attributes'])
+            for edge_atr in remove_edge_atrs:
+                del edge[2][edge_atr]
         return None
 
     def _setup_buildings(self):
@@ -130,6 +132,7 @@ class Map():
 
         # Initialize the assests
         self._affine_transformation_and_graph(experiment_config)
+        self._filter_attributes(experiment_config)
         self._setup_buildings()
         self._cumulative_positions_vector()
         return None

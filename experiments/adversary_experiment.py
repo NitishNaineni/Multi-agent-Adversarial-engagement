@@ -8,20 +8,22 @@ from .custom_primitive import FormationWithPlanning
 
 
 class AdversaryExperiment(BaseExperiment):
-    def __init__(self, config, core):
-        super().__init__(config, core)
+    def __init__(self):
+        super().__init__()
 
 
         # Primitive setup
+        
+
+    def reset(self,config,core):
+        """Called at the beginning and each time the simulation is reset"""
+        self.config = config
+        self.core = core
         self.actions = {}
         env_map = core.get_map()
         num_actor_groups = len(core.get_actor_groups())
         for i in range(num_actor_groups):
             self.actions[i] = FormationWithPlanning(env_map)
-
-    def reset(self):
-        """Called at the beginning and each time the simulation is reset"""
-        pass
 
     def get_action_space(self):
         """Returns the action space"""

@@ -27,14 +27,9 @@ class ShastaCore():
     such as server-client connecting, actor spawning,
     and getting the sensors data.
     """
-    def __init__(self, config, actor_groups: dict = None):
+    def __init__(self, config):
         """Initialize the server and client"""
         self.config = config
-        self.actor_groups = actor_groups
-
-        # Verify if the actor groups is a dictionary
-        if not isinstance(self.actor_groups, dict):
-            raise TypeError('Actor groups should be of type dict')
 
         self.world = World(config)
         # Setup the map
@@ -42,6 +37,8 @@ class ShastaCore():
 
         self.init_server()
         self._setup_physics_client()
+
+        self.spawned = False
 
     def _setup_physics_client(self):
         """Setup the physics client
@@ -110,7 +107,7 @@ class ShastaCore():
         self.world.load_world_model(read_path)
 
         # Spawn the actors in the physics client
-        self.spawn_actors()
+        # self.spawn_actors()
 
     def get_world(self):
         """Get the World object from the simulation
@@ -132,10 +129,19 @@ class ShastaCore():
         """
         return self.map
 
-    def reset(self):
+    def reset(self,actor_groups):
         """This function resets / spawns the hero vehicle and its sensors"""
 
         # Reset all the actors
+        self.despawn_actors()
+
+        self.actor_groups = actor_groups
+
+        # Verify if the actor groups is a dictionary
+        if not isinstance(self.actor_groups, dict):
+            raise TypeError('Actor groups should be of type dict')
+
+        self.spawn_actors()
         observations = {}
         for group_id in self.actor_groups:
             # Check if the entry is a list or not
@@ -154,6 +160,7 @@ class ShastaCore():
 
     def spawn_actors(self):
         """Spawns vehicles and walkers, also setting up the Traffic Manager and its parameters"""
+        self.spawned = True
         for group_id in self.actor_groups:
             # Check if the entry is a list or not
             if not isinstance(self.actor_groups[group_id], list):
@@ -171,6 +178,12 @@ class ShastaCore():
                         actor.init_pos)
 
                 self.world.spawn_actor(actor, position)
+
+    def despawn_actors(self):
+        if self.spawned:
+            for group_id in self.actor_groups:
+                self.world.despawn_actors(self.actor_groups[group_id])
+
 
     def get_actor_groups(self):
         """Get the actor groups

@@ -23,11 +23,10 @@ class ShastaEnv(gym.Env):
             raise Exception("The config should have experiment configuration")
 
         # Setup the core
-        self.core = ShastaCore(self.config, actor_groups=actor_groups)
+        self.core = ShastaCore(self.config)
         self.core.setup_experiment(self.config["experiment"])
 
-        self.experiment = self.config["experiment"]["type"](
-            self.config["experiment"], self.core)
+        self.experiment = self.config["experiment"]["type"]()
 
         if not self.experiment:
             raise Exception(
@@ -37,9 +36,8 @@ class ShastaEnv(gym.Env):
         self.action_space = self.experiment.get_action_space()
         self.observation_space = self.experiment.get_observation_space()
 
-        self.reset()
 
-    def reset(self):
+    def reset(self,actor_groups):
         """Reset the simulation
 
         Returns
@@ -47,10 +45,11 @@ class ShastaEnv(gym.Env):
         [type]
             [description]
         """
-        self.experiment.reset()
+        
 
         # Tick once and get the observations
-        raw_data = self.core.reset()
+        raw_data = self.core.reset(actor_groups)
+        self.experiment.reset(self.config["experiment"], self.core)
         observation, _ = self.experiment.get_observation(raw_data, self.core)
 
         return observation

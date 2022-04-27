@@ -30,6 +30,7 @@ class UgV(BaseActor):
     def load_asset(self):
         """Initial step of objects and constraints
         """
+        self.loaded = True
         # Initial pos and orientation
         if self.init_orientation is None:
             self.init_orientation = self.physics_client.getQuaternionFromEuler(
@@ -88,4 +89,6 @@ class UgV(BaseActor):
         return None
 
     def destroy(self):
-        self.physics_client.removeBody(self.object)
+        if self._loaded:
+            self.physics_client.removeBody(self.object)
+            self._loaded = False

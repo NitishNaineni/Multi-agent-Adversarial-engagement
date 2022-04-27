@@ -85,3 +85,10 @@ class World():
         actor._load()
         self.actor_ids.append(actor.get_actor_id())
         return None
+
+    def despawn_actors(self,actors):
+        self.actor_ids = []
+        for actor in actors:
+            actor.destroy()
+
+        
