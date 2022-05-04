@@ -5,6 +5,8 @@ import signal
 import pybullet as p
 from pybullet_utils import bullet_client as bc
 import networkx as nx
+import numpy as np
+from math import sin, cos, sqrt, radians
 
 from .world import World
 from .map import Map
@@ -142,21 +144,28 @@ class ShastaCore():
             raise TypeError('Actor groups should be of type dict')
 
         self.spawn_actors()
-        observations = {}
+        self.generate_adversaries(10)
+
         for group_id in self.actor_groups:
             # Check if the entry is a list or not
             if not isinstance(self.actor_groups[group_id], list):
                 self.actor_groups[group_id] = [self.actor_groups[group_id]]
 
-            obs_from_each_actor = []
-            for actor in self.actor_groups[group_id]:
-                # Reset the actor and collect the observation
-                actor.reset()
-                obs_from_each_actor.append(actor.get_observation)
-
-            observations[group_id] = obs_from_each_actor
-
-        return observations
+        num_actor_groups = len(self.actor_groups)
+        agent_vector = np.zeros((num_actor_groups,2))
+        positions_vector = self.map.get_positions_vector()
+        agent_nodes = set()
+        total_adv_nodes = set()
+        for i,actor in self.actor_groups.items():
+            actor[0].reset()
+            actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
+            node = self.get_nearest_node(positions_vector,actor_loc[:2])
+            agent_nodes.add(node)
+            agent_vector[i] = actor_loc
+            adv_nodes = self.get_visible_adversaries(actor_loc[:2],0.2)
+            total_adv_nodes.update(adv_nodes)
+        
+        return (agent_nodes,total_adv_nodes)
 
     def spawn_actors(self):
         """Spawns vehicles and walkers, also setting up the Traffic Manager and its parameters"""
@@ -213,23 +222,76 @@ class ShastaCore():
 
     def tick(self):
         """Performs one tick of the simulation, moving all actors, and getting the sensor data"""
-        observations = {}
 
         # Tick once the simulation
         self.physics_client.stepSimulation()
 
-        # Collect the raw observation from all the actors in each actor group
-        for group in self.actor_groups:
-            obs_from_each_actor = []
-            for actor in self.actor_groups[group]:
-                obs_from_each_actor.append(actor.get_observation())
-            
-
-            observations[group] = obs_from_each_actor
-
-        return observations
+        num_actor_groups = len(self.actor_groups)
+        agent_vector = np.zeros((num_actor_groups,2))
+        positions_vector = self.map.get_positions_vector()
+        agent_nodes = set()
+        total_adv_nodes = set()
+        for i,actor in self.actor_groups.items():
+            actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
+            node = self.get_nearest_node(positions_vector,actor_loc[:2])
+            agent_nodes.add(node)
+            agent_vector[i] = actor_loc
+            adv_nodes = self.get_visible_adversaries(actor_loc[:2],0.2)
+            total_adv_nodes.update(adv_nodes)
+    
+        return (agent_nodes,total_adv_nodes)
 
     def close_simulation(self):
         """Close the simulation
         """
         p.disconnect(self.physics_client._client)
+
+    def generate_adversaries(self,num_advers):
+        node_graph = self.map.get_node_graph()
+        position_vector = self.map.get_positions_vector()
+        y = [node_graph.nodes[n]['y'] for n in node_graph.nodes()]
+        x = [node_graph.nodes[n]['x'] for n in node_graph.nodes()]
+        mins = np.array([min(y),min(x)])
+        self.set_earth_radius((min(y)+max(y))/2)
+        spawn_range = np.array([max(y), max(x)]) - mins
+        adv_locs = np.random.rand(num_advers,2) * spawn_range + mins
+        new_adv_locs = np.zeros((num_advers,2))
+        adv_nodes = []
+        for i in range(num_advers):
+            node = self.get_nearest_node(position_vector,adv_locs[i])
+            adv_nodes.append(node)
+            new_adv_locs[i] = list(node_graph.nodes[node].values())[:2]
+        self.adv_nodes = adv_nodes
+        self.adv_vector = np.radians(new_adv_locs)
+        # print(self.adv_vector)
+        return None
+
+    def set_earth_radius(self,lat):
+        lat=radians(lat) #converting into radians
+        radius_equator = 6378.137  #Radius at sea level at equator
+        radius_poles = 6356.752  #Radius at poles
+        c = (radius_equator**2*cos(lat))**2
+        d = (radius_poles**2*sin(lat))**2
+        e = (radius_equator*cos(lat))**2
+        f = (radius_poles*sin(lat))**2
+        R = sqrt((c+d)/(e+f))
+        self.earth_radius = R
+        return None
+
+    def get_visible_adversaries(self,actor_loc,visible_range):
+        actor_loc = np.radians(actor_loc)
+        lat1 = self.adv_vector[:,0]
+        lon1 = self.adv_vector[:,1]
+        lat2 = actor_loc[0]
+        lon2 = actor_loc[1]
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = np.sin(dlat / 2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2)**2
+        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+        distances = self.earth_radius * c
+        adv_nodes = [node for node,distance in zip(self.adv_nodes,distances) if distance < visible_range]
+        return adv_nodes
+
+    def get_nearest_node(self,positions_vector,actor_loc):
+        return ((positions_vector - actor_loc)**2).sum(axis=1).argmin()
+

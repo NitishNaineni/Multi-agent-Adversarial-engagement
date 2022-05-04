@@ -61,8 +61,7 @@ class ShastaEnv(gym.Env):
         self.experiment.apply_actions(action, self.core)
         raw_data = self.core.tick()
 
-        observation, info = self.experiment.get_observation(
-            raw_data, self.core)
+        observation, info = self.experiment.get_observation(raw_data, self.core)
         done = self.experiment.get_done_status(observation, self.core)
         reward = self.experiment.compute_reward(observation, self.core)
 

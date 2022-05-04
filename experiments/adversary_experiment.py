@@ -1,8 +1,11 @@
 from platform import node
 from turtle import pos
+
+from attr import attributes
 from shasta import actor
 from shasta.base_experiment import BaseExperiment
-import osmnx as ox
+import numpy as np
+import networkx as nx
 
 from .custom_primitive import FormationWithPlanning
 
@@ -19,6 +22,7 @@ class AdversaryExperiment(BaseExperiment):
         """Called at the beginning and each time the simulation is reset"""
         self.config = config
         self.core = core
+        self.observed_adversaries = set()
         self.actions = {}
         env_map = core.get_map()
         num_actor_groups = len(core.get_actor_groups())
@@ -59,17 +63,24 @@ class AdversaryExperiment(BaseExperiment):
         as well as a variable with additional information about such observation.
         The information variable can be empty
         """
-        map = core.get_map()
-        node_graph = map.get_node_graph()
-        actor_groups = core.get_actor_groups()
-        num_actor_groups = len(actor_groups)
-        agent_node_locs = []
-        positions_vector = map.get_positions_vector()
-        for i in range(num_actor_groups):
-            actor_loc = map.convert_to_lat_lon(actor_groups[i][0].current_pos)
-            node_loc = self.get_nearest_node(positions_vector,actor_loc[:2])
-            print(map.convert_from_lat_lon(list(node_graph.nodes[node_loc].values())),actor_groups[i][0].current_pos)
-        return (observation,node_graph), {}
+        env_map = core.get_map()
+        node_graph = env_map.get_node_graph()
+        agent_nodes,adv_nodes = observation
+        attributes = {}
+        for node in agent_nodes:
+            if node in attributes.keys():
+                attributes[node]['agent'] = 1
+            else:
+                attributes[node] = {'agent':1}
+
+        for node in adv_nodes:
+            if node in attributes.keys():
+                attributes[node]['adversary'] = 1
+            else:
+                attributes[node] = {'adversary':1}
+
+        nx.set_node_attributes(node_graph,attributes)
+        return node_graph, {}
 
     def get_done_status(self, observation, core):
         """Returns whether or not the experiment has to end"""
@@ -78,14 +89,17 @@ class AdversaryExperiment(BaseExperiment):
     def compute_reward(self, observation, core):
         """Computes the reward"""
         rewards = {}
-        for key,group_observations in observation[0].items():
-            group_rewards = []
-            for agent_observation in group_observations:
-                group_rewards.append(1)
-            rewards[key] = group_rewards
+        # for key,group_observations in observation[0].items():
+        #     group_rewards = []
+        #     for agent_observation in group_observations:
+        #         group_rewards.append(1)
+        #     rewards[key] = group_rewards
         return rewards
 
     def get_nearest_node(self,positions_vector,actor_loc):
         return ((positions_vector - actor_loc)**2).sum(axis=1).argmin()
 
+    
+
+    
 

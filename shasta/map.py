@@ -98,6 +98,10 @@ class Map():
 
         return None
 
+    def _initialize_agent_adversaries(self):
+        nx.set_node_attributes(self.node_graph,0,'agent')
+        nx.set_node_attributes(self.node_graph,0,'adversary')
+
     def setup(self, experiment_config):
         """Perform the initial experiment setup e.g., loading the map
 
@@ -135,6 +139,7 @@ class Map():
         self._filter_attributes(experiment_config)
         self._setup_buildings()
         self._cumulative_positions_vector()
+        self._initialize_agent_adversaries()
         return None
 
     def get_affine_transformation_and_graph(self):

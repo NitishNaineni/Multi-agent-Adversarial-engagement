@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 
 NUM_UAV_GROUPS = 0
-NUM_UGV_GROUPS = 1
+NUM_UGV_GROUPS = 100
 NUM_AGENTS_PER_GROUP = 1
 
 config_path = 'config/adversary_config.yml'
@@ -27,11 +27,13 @@ env.reset(actor_groups)
 
 action= random.sample(range(405),NUM_UGV_GROUPS + NUM_UAV_GROUPS)
 
-for j in range(10):
+for j in range(1):
     for i in range(50000):
         observation, reward, done, info = env.step([0]*NUM_UGV_GROUPS)
+        # action= random.sample(range(405),NUM_UGV_GROUPS + NUM_UAV_GROUPS)
+        # observation, reward, done, info = env.step(action)
         # time.sleep(0.0000001)
-        # print(done)
+        print(done)
         if all(done):
             break
     actor_groups = create_actor_groups(NUM_UAV_GROUPS,NUM_UGV_GROUPS,NUM_AGENTS_PER_GROUP)
