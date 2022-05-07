@@ -6,14 +6,14 @@ use_real_time: False
 time_step: 1.0
 headless: False
 dynamic: False
-adversary_visible_range: 0.2
+adversary_visible_range: 10 # in km
 number_adversaries: 10
-number_targets: 20
+number_targets: 1
 
 ##---------------------------------------------------------------------##
 experiment:
   type: []
-  map_to_use: 'buffalo-medium'
+  map_to_use: 'chicago'
   record_video: False
   log_states: False
   detailed_model: True

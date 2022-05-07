@@ -7,6 +7,7 @@ from shasta import actor
 from shasta.base_experiment import BaseExperiment
 import numpy as np
 import networkx as nx
+import copy
 
 from .custom_primitive import FormationWithPlanning
 
@@ -75,7 +76,7 @@ class AdversaryExperiment(BaseExperiment):
         The information variable can be empty
         """
         env_map = core.get_map()
-        node_graph = env_map.get_node_graph()
+        node_graph = env_map.get_node_graph().copy()
         agent_nodes,adv_nodes,target_nodes = observation
         attributes = {}
 
