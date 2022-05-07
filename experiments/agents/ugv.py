@@ -70,6 +70,7 @@ class UgV(BaseActor):
         self.physics_client.changeConstraint(self.constraint, self.init_pos)
         self.current_pos = self.init_pos
         self.desired_pos = self.init_pos
+        self.current_node = None
         return None
 
     def get_observation(self):

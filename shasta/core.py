@@ -42,6 +42,11 @@ class ShastaCore():
 
         self.spawned = False
 
+        self.adver_visible_range = config['adversary_visible_range']
+        self.num_adversaries = config['number_adversaries']
+        self.num_targets = config['number_targets']
+        self.adv_nodes_memory = set()
+
     def _setup_physics_client(self):
         """Setup the physics client
 
@@ -133,7 +138,9 @@ class ShastaCore():
 
     def reset(self,actor_groups):
         """This function resets / spawns the hero vehicle and its sensors"""
-
+        
+        self.map = Map()
+        self.map.setup(self.config['experiment'])
         # Reset all the actors
         self.despawn_actors()
 
@@ -144,7 +151,8 @@ class ShastaCore():
             raise TypeError('Actor groups should be of type dict')
 
         self.spawn_actors()
-        self.generate_adversaries(10)
+        self.generate_adversaries_targets(self.num_adversaries,self.num_targets)
+        self.adv_nodes_memory = set()
 
         for group_id in self.actor_groups:
             # Check if the entry is a list or not
@@ -154,18 +162,19 @@ class ShastaCore():
         num_actor_groups = len(self.actor_groups)
         agent_vector = np.zeros((num_actor_groups,2))
         positions_vector = self.map.get_positions_vector()
-        agent_nodes = set()
+        agent_nodes = []
         total_adv_nodes = set()
         for i,actor in self.actor_groups.items():
             actor[0].reset()
             actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
             node = self.get_nearest_node(positions_vector,actor_loc[:2])
-            agent_nodes.add(node)
+            agent_nodes.append(node)
             agent_vector[i] = actor_loc
             adv_nodes = self.get_visible_adversaries(actor_loc[:2],0.2)
             total_adv_nodes.update(adv_nodes)
         
-        return (agent_nodes,total_adv_nodes)
+        self.adv_nodes_memory = self.adv_nodes_memory | total_adv_nodes
+        return (agent_nodes,self.adv_nodes_memory,self.target_nodes)
 
     def spawn_actors(self):
         """Spawns vehicles and walkers, also setting up the Traffic Manager and its parameters"""
@@ -225,28 +234,31 @@ class ShastaCore():
 
         # Tick once the simulation
         self.physics_client.stepSimulation()
+        agent_nodes = []
+        total_adv_nodes = set()
 
         num_actor_groups = len(self.actor_groups)
         agent_vector = np.zeros((num_actor_groups,2))
         positions_vector = self.map.get_positions_vector()
-        agent_nodes = set()
-        total_adv_nodes = set()
+        
         for i,actor in self.actor_groups.items():
             actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
             node = self.get_nearest_node(positions_vector,actor_loc[:2])
-            agent_nodes.add(node)
+            agent_nodes.append(node)
             agent_vector[i] = actor_loc
-            adv_nodes = self.get_visible_adversaries(actor_loc[:2],0.2)
+            adv_nodes = self.get_visible_adversaries(actor_loc[:2],self.adver_visible_range)
+                
             total_adv_nodes.update(adv_nodes)
-    
-        return (agent_nodes,total_adv_nodes)
+
+        self.adv_nodes_memory = self.adv_nodes_memory | total_adv_nodes
+        return (agent_nodes,self.adv_nodes_memory,self.target_nodes)
 
     def close_simulation(self):
         """Close the simulation
         """
         p.disconnect(self.physics_client._client)
 
-    def generate_adversaries(self,num_advers):
+    def generate_adversaries_targets(self,num_advers,num_targets):
         node_graph = self.map.get_node_graph()
         position_vector = self.map.get_positions_vector()
         y = [node_graph.nodes[n]['y'] for n in node_graph.nodes()]
@@ -255,6 +267,7 @@ class ShastaCore():
         self.set_earth_radius((min(y)+max(y))/2)
         spawn_range = np.array([max(y), max(x)]) - mins
         adv_locs = np.random.rand(num_advers,2) * spawn_range + mins
+        target_locs = np.random.rand(num_targets,2) * spawn_range + mins
         new_adv_locs = np.zeros((num_advers,2))
         adv_nodes = []
         for i in range(num_advers):
@@ -263,7 +276,13 @@ class ShastaCore():
             new_adv_locs[i] = list(node_graph.nodes[node].values())[:2]
         self.adv_nodes = adv_nodes
         self.adv_vector = np.radians(new_adv_locs)
-        # print(self.adv_vector)
+        
+        target_nodes = []
+        for i in range(num_targets):
+            node = self.get_nearest_node(position_vector,target_locs[i])
+            target_nodes.append(node)
+
+        self.target_nodes = target_nodes
         return None
 
     def set_earth_radius(self,lat):

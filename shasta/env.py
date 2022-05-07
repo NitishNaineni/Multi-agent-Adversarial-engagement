@@ -35,6 +35,7 @@ class ShastaEnv(gym.Env):
 
         self.action_space = self.experiment.get_action_space()
         self.observation_space = self.experiment.get_observation_space()
+        self.timestep = 0
 
 
     def reset(self,actor_groups):
@@ -46,11 +47,12 @@ class ShastaEnv(gym.Env):
             [description]
         """
         
-
+        self.num_actors = len(actor_groups)
         # Tick once and get the observations
         raw_data = self.core.reset(actor_groups)
         self.experiment.reset(self.config["experiment"], self.core)
         observation, _ = self.experiment.get_observation(raw_data, self.core)
+        self.timestep = 0
 
         return observation
 
@@ -58,14 +60,32 @@ class ShastaEnv(gym.Env):
         """Computes one tick of the environment in order to return the new observation,
         as well as the rewards"""
 
-        self.experiment.apply_actions(action, self.core)
+        adver_times  = {i:0 for i in range(self.num_actors)}
+        readys = self.experiment.apply_actions(action, self.core)
         raw_data = self.core.tick()
+        self.timestep += 1
+
+        agent_nodes,total_adv_nodes,target_nodes  = raw_data
+        for i,agent_node in enumerate(agent_nodes):
+            if agent_node in total_adv_nodes:
+                adver_times[i] = adver_times[i] - 1
+
+        while not any(list(readys.values())):
+            readys = self.experiment.apply_actions(action, self.core)
+            raw_data = self.core.tick()
+            self.timestep += 1
+
+            agent_nodes,total_adv_nodes,target_nodes  = raw_data
+            for i,agent_node in enumerate(agent_nodes):
+                if agent_node in total_adv_nodes:
+                    adver_times[i] += 1
+
 
         observation, info = self.experiment.get_observation(raw_data, self.core)
-        done = self.experiment.get_done_status(observation, self.core)
-        reward = self.experiment.compute_reward(observation, self.core)
+        dones = self.experiment.get_done_status(raw_data, self.timestep, self.core)
+        reward = self.experiment.compute_reward(self.timestep, adver_times, readys)
 
-        return observation, reward, done, info
+        return observation, reward, dones, readys, info
 
     def close(self):
         self.core.close_simulation()

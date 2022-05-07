@@ -24,22 +24,22 @@ class FormationWithPlanning():
             centroid = vehicles[0].current_pos
         return centroid
 
-    def execute(self, vehicles, target_pos):
+    def execute(self,ready, vehicles, target_pos):
 
         # Get centroid and find the shortest path
         self.centroid = self.get_centroid(vehicles)
 
         # Find the path
-        if self.path_points is None:
-            self.path_points = self.planning.find_path(start=self.centroid,
-                                                       end=target_pos)
+        if self.path_points is None or ready:
+            self.path_points = self.planning.find_path(start=self.centroid,end=target_pos)
 
         # Start executing the action
-        self.next_pos = self.path_points[0]
-        self.formation.execute(vehicles, self.next_pos, self.centroid, 'solid')
-
-        # Update the path points
-        self.update_path_points()
+        if not self.path_points.size == 0:
+            self.next_pos = self.path_points[0]
+            self.formation.execute(vehicles, self.next_pos, self.centroid, 'solid')
+            
+            # Update the path points
+            self.update_path_points()
 
         return self.get_done_status()
 

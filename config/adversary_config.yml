@@ -1,11 +1,14 @@
 ##---------------------------------------------------------------------##
 # Simulation parameters
-total_time: 1000
+total_time: 0
 current_time: 0
 use_real_time: False
 time_step: 1.0
 headless: False
 dynamic: False
+adversary_visible_range: 0.2
+number_adversaries: 10
+number_targets: 20
 
 ##---------------------------------------------------------------------##
 experiment:
@@ -16,6 +19,8 @@ experiment:
   detailed_model: True
   node_attributes:  ['x','y']
   edge_attributes:  ['length']
+  max_timesteps: 500000
+  adversary_reward_multipler: 10
 
 ##---------------------------------------------------------------------##
 # Paths

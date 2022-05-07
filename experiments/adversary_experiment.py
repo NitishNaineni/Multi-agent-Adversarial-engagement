@@ -1,3 +1,4 @@
+import enum
 from platform import node
 from turtle import pos
 
@@ -25,9 +26,16 @@ class AdversaryExperiment(BaseExperiment):
         self.observed_adversaries = set()
         self.actions = {}
         env_map = core.get_map()
-        num_actor_groups = len(core.get_actor_groups())
-        for i in range(num_actor_groups):
+        self.max_timesteps = config['max_timesteps']
+        self.adversary_reward_multipler = config['adversary_reward_multipler']
+        self.num_actor_groups = len(core.get_actor_groups())
+        self.readys = {}
+        self.last_timestep = 0
+        self.dones = [False]*self.num_actor_groups
+        self.cum_reward = {i:0 for i in range(self.num_actor_groups)}
+        for i in range(self.num_actor_groups):
             self.actions[i] = FormationWithPlanning(env_map)
+            self.readys[i] = True
 
     def get_action_space(self):
         """Returns the action space"""
@@ -48,11 +56,14 @@ class AdversaryExperiment(BaseExperiment):
         """
         # Get the actor group
         actor_groups = core.get_actor_groups()
-        self.dones = []
         num_actor_groups = len(actor_groups)
         for i in range(num_actor_groups):
-            done = self.actions[i].execute(actor_groups[i], target_pos=actions[i])
-            self.dones.append(done)
+            if not self.dones[i]:
+                ready = self.actions[i].execute(self.readys[i], actor_groups[i], target_pos=actions[i])
+                self.readys[i] = ready
+            else:
+                self.readys[i] = False
+        return self.readys
 
     def get_observation(self, observation, core):
         """Function to do all the post processing of observations (sensor data).
@@ -65,9 +76,10 @@ class AdversaryExperiment(BaseExperiment):
         """
         env_map = core.get_map()
         node_graph = env_map.get_node_graph()
-        agent_nodes,adv_nodes = observation
+        agent_nodes,adv_nodes,target_nodes = observation
         attributes = {}
-        for node in agent_nodes:
+
+        for node in set(agent_nodes):
             if node in attributes.keys():
                 attributes[node]['agent'] = 1
             else:
@@ -79,22 +91,38 @@ class AdversaryExperiment(BaseExperiment):
             else:
                 attributes[node] = {'adversary':1}
 
-        nx.set_node_attributes(node_graph,attributes)
-        return node_graph, {}
+        for node in target_nodes:
+            if node in attributes.keys():
+                attributes[node]['target'] = 1
+            else:
+                attributes[node] = {'target':1}
 
-    def get_done_status(self, observation, core):
+        nx.set_node_attributes(node_graph,attributes)
+        return (node_graph,agent_nodes),{}
+
+    def get_done_status(self, observation, timestep, core):
         """Returns whether or not the experiment has to end"""
+        agent_nodes,total_adv_nodes,target_nodes = observation
+        if timestep > self.max_timesteps:
+            return [True] * self.num_actor_groups
+        
+        actor_groups = core.get_actor_groups()
+
+        for i,agent_node in enumerate(agent_nodes):
+            self.dones[i] = self.dones[i] or agent_node in target_nodes
+        
         return self.dones
 
-    def compute_reward(self, observation, core):
+    def compute_reward(self, timestep, adver_times, readys):
         """Computes the reward"""
-        rewards = {}
-        # for key,group_observations in observation[0].items():
-        #     group_rewards = []
-        #     for agent_observation in group_observations:
-        #         group_rewards.append(1)
-        #     rewards[key] = group_rewards
-        return rewards
+        out_reward = {i:0 for i in range(self.num_actor_groups)}
+        for agent_num, adver_time in adver_times.items():
+            self.cum_reward[agent_num] = 0.1 * (-adver_time*self.adversary_reward_multipler - (timestep - self.last_timestep))
+            if readys[agent_num]:
+                out_reward[agent_num] = self.cum_reward[agent_num]
+                self.cum_reward[agent_num] = 0
+        self.last_timestep = timestep
+        return out_reward
 
     def get_nearest_node(self,positions_vector,actor_loc):
         return ((positions_vector - actor_loc)**2).sum(axis=1).argmin()
