@@ -41,15 +41,12 @@ class Prioritized_Experience_Replay:
         return self.timestep >= self.size
 
 class Hindsight_Experience_Replay:
-    def __init__(self, size, alpha, sample_size):
+    def __init__(self, size, sample_size):
         self.size = size
-        self.alpha = alpha
         self.sample_size = sample_size
         self.buffer = deque(maxlen=size)
-        self.priorities = deque(maxlen=size)
-        self.offset = 1
-        self.p_total = 0
         self.timestep = 0
 
-    def push(self,*args):
+    def push(self,states,actions,rewards,next_states,dones):
+        
         

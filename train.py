@@ -10,23 +10,16 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 
-NUM_UAV_GROUPS = 0
-NUM_UGV_GROUPS = 3
-NUM_AGENTS_PER_GROUP = 1
-
 config_path = 'config/adversary_config.yml'
 config = yaml.load(open(str(config_path)), Loader=yaml.SafeLoader)
+NUM_UGV_GROUPS = config['num_agents']
 
-
-actor_groups = create_actor_groups(NUM_UAV_GROUPS,NUM_UGV_GROUPS,NUM_AGENTS_PER_GROUP)
+actor_groups = create_actor_groups(0,NUM_UGV_GROUPS,1)
 config['experiment']['type'] = AdversaryExperiment
 env = ShastaEnv(config)
 env.reset(actor_groups)
-# G = env.get_map()
-# data = from_networkx(G)
-# print(data.x,data.y)
 
-action= [0]*NUM_UGV_GROUPS
+action= [None]*NUM_UGV_GROUPS
 readys = {i:True for i in range(NUM_UGV_GROUPS)}
 
 for j in range(10):
@@ -40,6 +33,6 @@ for j in range(10):
         print(readys,dones,j,i,reward.values())
         if all(dones):
             break
-    actor_groups = create_actor_groups(NUM_UAV_GROUPS,NUM_UGV_GROUPS,NUM_AGENTS_PER_GROUP)
+    actor_groups = create_actor_groups(0,NUM_UGV_GROUPS,1)
     env.reset(actor_groups)
     print('///////////////////////////////////////////////////////')

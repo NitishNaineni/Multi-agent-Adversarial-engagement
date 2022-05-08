@@ -4,11 +4,12 @@ total_time: 0
 current_time: 0
 use_real_time: False
 time_step: 1.0
-headless: False
+headless: True
 dynamic: False
 adversary_visible_range: 10 # in km
 number_adversaries: 10
-number_targets: 1
+number_targets: 100
+num_agents: 3
 
 ##---------------------------------------------------------------------##
 experiment:

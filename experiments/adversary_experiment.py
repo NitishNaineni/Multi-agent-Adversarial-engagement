@@ -33,6 +33,7 @@ class AdversaryExperiment(BaseExperiment):
         self.readys = {}
         self.last_timestep = 0
         self.dones = [False]*self.num_actor_groups
+        self.prevdones = [False]*self.num_actor_groups
         self.cum_reward = {i:0 for i in range(self.num_actor_groups)}
         for i in range(self.num_actor_groups):
             self.actions[i] = FormationWithPlanning(env_map)
@@ -119,9 +120,17 @@ class AdversaryExperiment(BaseExperiment):
         out_reward = {i:0 for i in range(self.num_actor_groups)}
         for agent_num, adver_time in adver_times.items():
             self.cum_reward[agent_num] = 0.1 * (-adver_time*self.adversary_reward_multipler - (timestep - self.last_timestep))
-            if readys[agent_num]:
+            
+            if self.dones[agent_num] and not self.prevdones[agent_num]:
+                self.cum_reward[agent_num] += 100
+                out_reward[agent_num] = max(10,self.cum_reward[agent_num])
+                self.cum_reward[agent_num] = 0
+                self.prevdones[agent_num] = True
+
+            elif readys[agent_num]:
                 out_reward[agent_num] = self.cum_reward[agent_num]
                 self.cum_reward[agent_num] = 0
+
         self.last_timestep = timestep
         return out_reward
 
