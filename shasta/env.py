@@ -66,9 +66,9 @@ class ShastaEnv(gym.Env):
         self.timestep += 1
 
         agent_nodes,total_adv_nodes,target_nodes  = raw_data
-        for i,agent_node in enumerate(agent_nodes):
+        for i,agent_node in agent_nodes.items():
             if agent_node in total_adv_nodes:
-                adver_times[i] = adver_times[i] - 1
+                adver_times[i] += 1
 
         while not any(list(readys.values())):
             readys = self.experiment.apply_actions(action, self.core)
@@ -76,7 +76,7 @@ class ShastaEnv(gym.Env):
             self.timestep += 1
 
             agent_nodes,total_adv_nodes,target_nodes  = raw_data
-            for i,agent_node in enumerate(agent_nodes):
+            for i,agent_node in agent_nodes.items():
                 if agent_node in total_adv_nodes:
                     adver_times[i] += 1
 
@@ -86,6 +86,9 @@ class ShastaEnv(gym.Env):
         reward = self.experiment.compute_reward(self.timestep, adver_times, readys)
 
         return observation, reward, dones, readys, info
+
+    def get_actions(self):
+        return self.core.action_nodes
 
     def close(self):
         self.core.close_simulation()

@@ -7,9 +7,10 @@ time_step: 1.0
 headless: True
 dynamic: False
 adversary_visible_range: 10 # in km
-number_adversaries: 10
-number_targets: 100
+number_adversaries: 20
+number_targets: 1
 num_agents: 3
+num_episodes: 1000
 
 ##---------------------------------------------------------------------##
 experiment:
@@ -20,7 +21,7 @@ experiment:
   detailed_model: True
   node_attributes:  ['x','y']
   edge_attributes:  ['length']
-  max_timesteps: 500000
+  max_timesteps: 10000
   adversary_reward_multipler: 10
 
 ##---------------------------------------------------------------------##

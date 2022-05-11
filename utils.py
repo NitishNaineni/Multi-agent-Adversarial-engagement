@@ -1,5 +1,7 @@
 import sys
 from contextlib import contextmanager
+import random
+import torch
 
 
 class SkipWith(Exception):
@@ -51,3 +53,29 @@ class ColorPrint:
     @staticmethod
     def print_warn(message, end='\n'):
         sys.stderr.write('\x1b[1;33m' + message.strip() + '\x1b[0m' + end)
+
+class ActionSelector:
+    def __init__(self,decay,num_actions):
+        self.decay = decay
+        self.num_actions = num_actions
+        self.timestep = 0
+        
+    def select_action(self,state,policy):
+        rate = self.decay.get_ep_rate(self.timestep)
+        self.timestep += 1
+        
+        if rate > random.random():
+            return random.randrange(self.num_actions),rate
+        else:
+            with torch.no_grad():
+                return policy(state).argmax().item(),rate
+
+
+class Decay:
+    def __init__(self,start,end,decay):
+        self.start = start
+        self.end = end
+        self.decay = decay
+        
+    def get_ep_rate(self,timestep):
+        return self.end + (self.start - self.end) * np.exp(-1 * timestep * self.decay)

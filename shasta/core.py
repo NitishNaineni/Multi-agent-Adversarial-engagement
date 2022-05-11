@@ -152,6 +152,8 @@ class ShastaCore():
 
         self.spawn_actors()
         self.generate_adversaries_targets(self.num_adversaries,self.num_targets)
+        self.action_nodes = self.map.action_nodes + self.target_nodes
+
         self.adv_nodes_memory = set()
 
         for group_id in self.actor_groups:
@@ -162,13 +164,13 @@ class ShastaCore():
         num_actor_groups = len(self.actor_groups)
         agent_vector = np.zeros((num_actor_groups,2))
         positions_vector = self.map.get_positions_vector()
-        agent_nodes = []
+        agent_nodes = {}
         total_adv_nodes = set()
         for i,actor in self.actor_groups.items():
             actor[0].reset()
             actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
             node = self.get_nearest_node(positions_vector,actor_loc[:2])
-            agent_nodes.append(node)
+            agent_nodes[i] = node
             agent_vector[i] = actor_loc
             adv_nodes = self.get_visible_adversaries(actor_loc[:2],0.2)
             total_adv_nodes.update(adv_nodes)
@@ -234,7 +236,7 @@ class ShastaCore():
 
         # Tick once the simulation
         self.physics_client.stepSimulation()
-        agent_nodes = []
+        agent_nodes = {}
         total_adv_nodes = set()
 
         num_actor_groups = len(self.actor_groups)
@@ -244,7 +246,7 @@ class ShastaCore():
         for i,actor in self.actor_groups.items():
             actor_loc = self.map.convert_to_lat_lon(actor[0].get_observation())[:2]
             node = self.get_nearest_node(positions_vector,actor_loc[:2])
-            agent_nodes.append(node)
+            agent_nodes[i] = node
             agent_vector[i] = actor_loc
             adv_nodes = self.get_visible_adversaries(actor_loc[:2],self.adver_visible_range)
                 
@@ -277,12 +279,12 @@ class ShastaCore():
         self.adv_nodes = adv_nodes
         self.adv_vector = np.radians(new_adv_locs)
         
-        target_nodes = []
-        for i in range(num_targets):
-            node = self.get_nearest_node(position_vector,target_locs[i])
-            target_nodes.append(node)
+        # target_nodes = []
+        # for i in range(num_targets):
+        #     node = self.get_nearest_node(position_vector,target_locs[i])
+        #     target_nodes.append(int(node))
 
-        self.target_nodes = target_nodes
+        self.target_nodes = [380]
         return None
 
     def set_earth_radius(self,lat):

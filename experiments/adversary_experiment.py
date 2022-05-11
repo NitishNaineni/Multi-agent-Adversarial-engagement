@@ -32,8 +32,8 @@ class AdversaryExperiment(BaseExperiment):
         self.num_actor_groups = len(core.get_actor_groups())
         self.readys = {}
         self.last_timestep = 0
-        self.dones = [False]*self.num_actor_groups
-        self.prevdones = [False]*self.num_actor_groups
+        self.dones = {i:False for i in range(self.num_actor_groups)}
+        self.prevdones = {i:False for i in range(self.num_actor_groups)}
         self.cum_reward = {i:0 for i in range(self.num_actor_groups)}
         for i in range(self.num_actor_groups):
             self.actions[i] = FormationWithPlanning(env_map)
@@ -81,7 +81,7 @@ class AdversaryExperiment(BaseExperiment):
         agent_nodes,adv_nodes,target_nodes = observation
         attributes = {}
 
-        for node in set(agent_nodes):
+        for node in set(agent_nodes.values()):
             if node in attributes.keys():
                 attributes[node]['agent'] = 1
             else:
@@ -105,11 +105,11 @@ class AdversaryExperiment(BaseExperiment):
     def get_done_status(self, observation, timestep, core):
         """Returns whether or not the experiment has to end"""
         agent_nodes,total_adv_nodes,target_nodes = observation
-        if timestep > self.max_timesteps:
-            return [True] * self.num_actor_groups
+        if timestep >= self.max_timesteps:
+            for i,agent_node in enumerate(agent_nodes):
+                self.dones[i] = True
+            return self.dones
         
-        actor_groups = core.get_actor_groups()
-
         for i,agent_node in enumerate(agent_nodes):
             self.dones[i] = self.dones[i] or agent_node in target_nodes
         
@@ -119,13 +119,18 @@ class AdversaryExperiment(BaseExperiment):
         """Computes the reward"""
         out_reward = {i:0 for i in range(self.num_actor_groups)}
         for agent_num, adver_time in adver_times.items():
-            self.cum_reward[agent_num] = 0.1 * (-adver_time*self.adversary_reward_multipler - (timestep - self.last_timestep))
-            
+            self.cum_reward[agent_num] += 0.01 * (-adver_time*self.adversary_reward_multipler - (timestep - self.last_timestep))
+        
             if self.dones[agent_num] and not self.prevdones[agent_num]:
-                self.cum_reward[agent_num] += 100
-                out_reward[agent_num] = max(10,self.cum_reward[agent_num])
-                self.cum_reward[agent_num] = 0
-                self.prevdones[agent_num] = True
+                if timestep < self.max_timesteps:
+                    self.cum_reward[agent_num] += 100
+                    out_reward[agent_num] = max(10,self.cum_reward[agent_num])
+                    self.cum_reward[agent_num] = 0
+                    self.prevdones[agent_num] = True
+                else:
+                    out_reward[agent_num] = self.cum_reward[agent_num]
+                    self.cum_reward[agent_num] = 0
+                    self.prevdones[agent_num] = True
 
             elif readys[agent_num]:
                 out_reward[agent_num] = self.cum_reward[agent_num]

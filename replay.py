@@ -1,5 +1,7 @@
 import numpy as np
 from collections import deque,namedtuple
+import networkx as nx
+import random
 
 Experience = namedtuple('Experience',
                         ('state', 'action', 'reward', 'next_state', 'done'))
@@ -45,8 +47,44 @@ class Hindsight_Experience_Replay:
         self.size = size
         self.sample_size = sample_size
         self.buffer = deque(maxlen=size)
-        self.timestep = 0
+        self.current_size = 0
 
-    def push(self,states,actions,rewards,next_states,dones):
+    def push(self,states,actions,rewards,next_states,dones,targets,last_iter,last_positions):
         
+
+        for state,action,reward,next_state,done in zip(states,actions,rewards,next_states,dones):
+            self.buffer.append(Experience(state,action,reward,next_state,done))
+            self.current_size += 1
         
+        new_targets_attibutes = {}
+
+        for i,final_agent_pos in last_positions.items():
+            if final_agent_pos not in targets:
+                if final_agent_pos in new_targets_attibutes.keys():
+                    new_targets_attibutes[final_agent_pos]["target"] = 1
+                else:
+                    new_targets_attibutes[final_agent_pos] = {"target":1}
+                rewards[last_iter[i]] = 10
+
+        for target in targets:
+            if target not in last_positions.values():
+                if target in new_targets_attibutes.keys():
+                    new_targets_attibutes[target]["target"] = 0
+                else:
+                    new_targets_attibutes[target] = {"target":0}
+
+        for state,action,reward,next_state,done in zip(states,actions,rewards,next_states,dones):
+            graph,agent_nodes = state
+            next_graph,next_agent_nodes = next_state
+            nx.set_node_attributes(graph,new_targets_attibutes)
+            nx.set_node_attributes(next_graph,new_targets_attibutes)
+            state = (graph,agent_nodes)
+            next_state = (next_graph,next_agent_nodes)
+            self.buffer.append(Experience(state,action,reward,next_state,done))
+            self.current_size += 1
+
+    def sample(self):
+        return random.sample(self.buffer, self.sample_size)
+
+    def get_size(self):
+        return min(self.current_size,self.size)

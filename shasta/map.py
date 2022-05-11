@@ -21,7 +21,7 @@ class Map():
         # Graph
         read_path = self.asset_path + '/map.osm'
         G = ox.graph_from_xml(read_path, simplify=True, bidirectional='walk')
-        
+        G = G.to_undirected()
         node_graph = nx.convert_node_labels_to_integers(G)
         self.node_graph = node_graph
 
@@ -103,6 +103,14 @@ class Map():
         nx.set_node_attributes(self.node_graph,0,'adversary')
         nx.set_node_attributes(self.node_graph,0,'target')
 
+    def _save_actions(self):
+        action_nodes = []
+        for node in self.node_graph.nodes():
+            if len(list(self.node_graph.neighbors(node))) > 1 and 'highway' in self.node_graph.nodes[node].keys() and self.node_graph.nodes[node]["highway"] == 'traffic_signals':
+                action_nodes.append(node)
+        self.action_nodes = action_nodes
+    
+
     def setup(self, experiment_config):
         """Perform the initial experiment setup e.g., loading the map
 
@@ -137,6 +145,7 @@ class Map():
 
         # Initialize the assests
         self._affine_transformation_and_graph(experiment_config)
+        self._save_actions()
         self._filter_attributes(experiment_config)
         self._setup_buildings()
         self._cumulative_positions_vector()
